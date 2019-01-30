@@ -1,5 +1,4 @@
-import { ApolloClient } from 'apollo-client'
-import { InMemoryCache } from 'apollo-cache-inmemory'
+import { AWSAppSyncClient } from 'aws-appsync'
 import fetch from 'isomorphic-fetch'
 import isFunction from 'lodash.isfunction'
 
@@ -10,21 +9,20 @@ if (!process.browser) {
   global.fetch = fetch
 }
 
-const createDefaultCache = () => new InMemoryCache()
-
 function create(apolloConfig, initialState) {
-  const createCache = apolloConfig.createCache || createDefaultCache
-
   const config = {
-    connectToDevTools: process.browser,
     ssrMode: !process.browser, // Disables forceFetch on the server (so queries are only run once)
-    cache: createCache().restore(initialState || {}),
+    disableOffline: true,
     ...apolloConfig
   }
 
-  delete config.createCache
+  const client = new AWSAppSyncClient(config)
 
-  return new ApolloClient(config)
+  if (initialState) {
+    client.cache.restore(initialState)
+  }
+
+  return client
 }
 
 export default function initApollo(apolloConfig, initialState, ctx) {
